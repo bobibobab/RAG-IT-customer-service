@@ -12,6 +12,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [AIanswer, setAIanswer] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +40,7 @@ function App() {
       const data = await response.json();
       console.log(data)
       setResults(data.results);
+      setAIanswer(data.gpt_answer.summary)
     } catch (err) {
       setError('An error occurred while searching. Please try again.');
     } finally {
@@ -115,20 +117,33 @@ function App() {
         ) : (
           results.length > 0 && (
             <div className="space-y-6">
-              {results.map((result, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100"
-                >
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                    {result.question}
-                  </h3>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4">
-                    Similarity: {result.similarity.toFixed(4)}
-                  </div>
-                  <p className="text-gray-700 leading-relaxed">{result.answer}</p>
+              {/* Show GPT Answer First */}
+                {AIanswer && (
+                <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">AI Answer</h3>
+                    <p className="text-gray-700 leading-relaxed">{AIanswer}</p>
                 </div>
-              ))}
+              )}
+
+              {/* Show Related Questions and Answers */}
+                <div className="space-y-6">
+                  {results.map((result, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100"
+                    >
+                      <h1 className="text-2xl font-semibold text-gray-900 mb-4">Related Question and Answer {index + 1}</h1> {/* 제목 강조 */}
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                        {result.question}
+                      </h3>
+                      <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4">
+                        Similarity: {result.similarity.toFixed(4)}
+                      </div>
+                      <p className="text-gray-700 leading-relaxed">{result.answer}</p>
+                    </div>
+                  ))}
+                </div>
+
             </div>
           )
         )}

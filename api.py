@@ -119,9 +119,7 @@ def search_similar_questions(request: QueryRequest):
 
             Please respond in this exact JSON format (without truncation or incomplete data):
             {{
-            "summary": "final helpful answer to the user",
-            "source_questions": ["..."],
-            "source_answers": ["..."]
+            "summary": "final helpful answer to the user"
             }}
 
             {context}
@@ -137,12 +135,12 @@ def search_similar_questions(request: QueryRequest):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=150
+            max_tokens=300
         )
         
         try:
             gpt_text = response.choices[0].message.content.strip()
-            print("GPT Response: ", gpt_text)
+            print("Raw GPT Response: ", gpt_text)
             parsed_json = json.loads(gpt_text)
             
         except Exception as e:
