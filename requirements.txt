@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+sentence-transformers
+psycopg2-binary
+python-dotenv
+pandas
+scikit-learn

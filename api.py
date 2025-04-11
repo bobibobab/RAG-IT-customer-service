@@ -1,3 +1,4 @@
+import json
 import os
 os.environ["TRANSFORMERS_NO_TF"] = "1"
 
@@ -5,6 +6,7 @@ from fastapi import FastAPI, Query, HTTPException, Depends
 from pydantic import BaseModel
 import os
 import uuid
+from openai import OpenAI
 import psycopg2
 from psycopg2.extras import Json
 import numpy as np
@@ -21,6 +23,7 @@ load_dotenv()
 conn = None
 cur = None
 db_connected = False
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Try to connect to Supabase (PostgreSQL)
 try:
@@ -101,8 +104,56 @@ def search_similar_questions(request: QueryRequest):
 
             if len(results) >= request.top_k:
                 break
+        
+        context = "The following are previous similar questions, their similarity scores, and the answers given:\n\n"
+        for item in results:
+            context += f"Question: {item['question']}\n"
+            context += f"Similarity Score: {item['similarity']}\n"
+            context += f"Answer: {item['answer']}\n\n"
 
-        return {"query": request.query, "results": results}
+
+        prompt = f"""
+            You are an IT customer support assistant.
+
+            Based on the previous similar questions and answers below, generate a helpful answer for the current user's question.
+
+            Please respond in this exact JSON format (without truncation or incomplete data):
+            {{
+            "summary": "final helpful answer to the user",
+            "source_questions": ["..."],
+            "source_answers": ["..."]
+            }}
+
+            {context}
+            User's question: {request.query}
+
+            Respond only in the exact JSON format above (do not truncate the response, ensure proper closure of the JSON structure):
+            """
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # 또는 "gpt-4" 도 가능
+            messages=[
+                {"role": "system", "content": "You are an IT customer support assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=150
+        )
+        
+        try:
+            gpt_text = response.choices[0].message.content.strip()
+            print("GPT Response: ", gpt_text)
+            parsed_json = json.loads(gpt_text)
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to parse GPT response: {str(e)}")
+        
+        # Step 5: Final return value
+        return {
+            "query": request.query,
+            "results": results,
+            "gpt_answer": parsed_json  
+        }
 
 
     except Exception as e:
