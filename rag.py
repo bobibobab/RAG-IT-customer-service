@@ -44,48 +44,6 @@
 
 # print("✅ Data successfully inserted into Supabase!")
 
-import os
-import uuid
-import psycopg2
-import pandas as pd
-from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
-
-# .env 로드
-load_dotenv()
-
-# PostgreSQL (Supabase) 연결
-conn = psycopg2.connect(
-    host=os.getenv("DB_HOST"),
-    port=os.getenv("DB_PORT"),
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD")
-)
-cur = conn.cursor()
-
-# 임베딩 모델 로드 (384차원 벡터)
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# 임베딩 후 DB에 저장
-def insert_body_with_answer(body: str, answer: str):
-    embedding = model.encode(body).tolist()
-    cur.execute(
-        "INSERT INTO support_bodies (id, body, embedding, answer) VALUES (%s, %s, %s, %s)",
-        (str(uuid.uuid4()), body, embedding, answer)
-    )
-    conn.commit()
-
-# CSV 파일 로드
-df = pd.read_csv("dataset-tickets-multi-lang3-4k.csv")
-en_rows = df[(df["language"] == "en") & df["body"].notna() & df["answer"].notna()].reset_index(drop=True)
-
-for _, row in en_rows.iterrows():
-    insert_body_with_answer(row["body"], row["answer"])
-
-print("✅ Questions + Answers successfully inserted into Supabase!")
-
-
 # import os
 # import psycopg2
 # import pandas as pd
@@ -122,3 +80,42 @@ print("✅ Questions + Answers successfully inserted into Supabase!")
 
 # conn.commit()
 # print(f"✅ {updated_count} answers successfully updated in Supabase.")
+
+
+import os
+import uuid
+import psycopg2
+import pandas as pd
+from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+
+# .env 로드
+load_dotenv()
+
+conn = psycopg2.connect(
+    host=os.getenv("DB_HOST"),
+    port=os.getenv("DB_PORT"),
+    dbname=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD")
+)
+cur = conn.cursor()
+
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def insert_body_with_answer(body: str, answer: str):
+    embedding = model.encode(body).tolist()
+    cur.execute(
+        "INSERT INTO support_bodies (id, body, embedding, answer) VALUES (%s, %s, %s, %s)",
+        (str(uuid.uuid4()), body, embedding, answer)
+    )
+    conn.commit()
+
+df = pd.read_csv("dataset-tickets-multi-lang3-4k.csv")
+en_rows = df[(df["language"] == "en") & df["body"].notna() & df["answer"].notna()].reset_index(drop=True)
+
+for _, row in en_rows.iterrows():
+    insert_body_with_answer(row["body"], row["answer"])
+
+print("✅ Questions + Answers successfully inserted into Supabase!")
